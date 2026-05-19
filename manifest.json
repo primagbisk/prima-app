@@ -1,0 +1,17 @@
+{
+  "name": "PriMa — Pria Maximal GBIS Kepunton",
+  "short_name": "PriMa",
+  "description": "Aplikasi manajemen ibadah dan anggota Komisi Pria GBIS Kepunton",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1f3d",
+  "theme_color": "#0f1f3d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230f1f3d' rx='32'/><text y='130' x='96' text-anchor='middle' font-size='100' font-family='serif' fill='%23c9a84c'>P</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
