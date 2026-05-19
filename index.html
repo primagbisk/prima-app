@@ -40,6 +40,60 @@ body {
   overflow-x: hidden;
 }
 
+/* ── PIN SCREEN ── */
+#pinScreen {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--navy);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px 24px;
+  padding-top: calc(var(--safe-top) + 32px);
+  padding-bottom: calc(var(--safe-bottom) + 32px);
+}
+#pinScreen.hidden { display: none; }
+.pin-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem; color: var(--gold);
+  margin-bottom: 4px; letter-spacing: .05em;
+}
+.pin-subtitle { color: #a0aec0; font-size: .82rem; margin-bottom: 48px; text-align: center; }
+.pin-dots {
+  display: flex; gap: 14px; margin-bottom: 32px;
+}
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(201,168,76,.5);
+  background: transparent; transition: all .2s;
+}
+.pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+.pin-dot.error { background: var(--red); border-color: var(--red); animation: shake .4s; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 60%{transform:translateX(6px)}
+}
+.pin-error { color: #f56565; font-size: .8rem; min-height: 20px; margin-bottom: 20px; text-align: center; }
+.pin-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; width: 100%; max-width: 280px;
+}
+.pin-key {
+  height: 72px; border-radius: 14px;
+  background: rgba(255,255,255,.08);
+  border: 1.5px solid rgba(255,255,255,.1);
+  color: var(--white); font-size: 1.4rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; user-select: none;
+}
+.pin-key:active { background: var(--gold); color: var(--navy); border-color: var(--gold); transform: scale(.94); }
+.pin-key.del { font-size: 1.1rem; }
+.pin-key.empty { background: transparent; border: none; cursor: default; }
+.pin-change {
+  margin-top: 28px; color: #a0aec0; font-size: .75rem;
+  background: none; border: none; cursor: pointer;
+  text-decoration: underline;
+}
+
 /* ── HEADER ── */
 header {
   background: var(--navy);
@@ -405,6 +459,36 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
 </head>
 <body>
 
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div class="pin-logo">PriMa</div>
+  <div class="pin-subtitle">GBIS Kepunton · Pria Maximal<br>Masukkan PIN untuk melanjutkan</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="dot0"></div>
+    <div class="pin-dot" id="dot1"></div>
+    <div class="pin-dot" id="dot2"></div>
+    <div class="pin-dot" id="dot3"></div>
+    <div class="pin-dot" id="dot4"></div>
+    <div class="pin-dot" id="dot5"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-grid">
+    <button class="pin-key" onclick="pinInput('1')">1</button>
+    <button class="pin-key" onclick="pinInput('2')">2</button>
+    <button class="pin-key" onclick="pinInput('3')">3</button>
+    <button class="pin-key" onclick="pinInput('4')">4</button>
+    <button class="pin-key" onclick="pinInput('5')">5</button>
+    <button class="pin-key" onclick="pinInput('6')">6</button>
+    <button class="pin-key" onclick="pinInput('7')">7</button>
+    <button class="pin-key" onclick="pinInput('8')">8</button>
+    <button class="pin-key" onclick="pinInput('9')">9</button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" onclick="pinInput('0')">0</button>
+    <button class="pin-key del" onclick="pinDelete()">⌫</button>
+  </div>
+  <button class="pin-change" onclick="openChangePinModal()">Ganti PIN</button>
+</div>
+
 <!-- HEADER -->
 <header>
   <div class="header-brand">
@@ -567,6 +651,33 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
 
 <!-- ══════════ MODALS ══════════ -->
 
+<!-- GANTI PIN -->
+<div class="modal-overlay" id="changePinModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h2>🔐 Ganti PIN</h2><button class="modal-close" onclick="closeModal('changePinModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:13px">
+        <label>PIN Lama</label>
+        <input type="password" id="oldPin" placeholder="Masukkan PIN lama" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div class="form-group" style="margin-bottom:13px">
+        <label>PIN Baru (6 digit)</label>
+        <input type="password" id="newPin" placeholder="Masukkan PIN baru" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div class="form-group">
+        <label>Konfirmasi PIN Baru</label>
+        <input type="password" id="confirmPin" placeholder="Ulangi PIN baru" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+      </div>
+      <div id="changePinError" style="color:var(--red);font-size:.78rem;margin-top:10px;min-height:18px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('changePinModal')">Batal</button>
+      <button class="btn btn-gold" onclick="saveNewPin()">Simpan PIN</button>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
@@ -589,6 +700,10 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
       <div class="form-group">
         <label>Nama Admin</label>
         <input type="text" id="settingsAdmin" placeholder="Nama Anda">
+      </div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--cream-dark)">
+        <div style="font-size:.72rem;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Keamanan</div>
+        <button class="btn btn-outline btn-sm" onclick="openChangePinModal()">🔐 Ganti PIN</button>
       </div>
     </div>
     <div class="modal-footer">
@@ -714,6 +829,78 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
 
 <!-- ══════════ JAVASCRIPT ══════════ -->
 <script>
+// ── PIN ──
+const DEFAULT_PIN = '112233'; // PIN default pertama kali
+let pinBuffer = '';
+
+function getStoredPin() {
+  return localStorage.getItem('prima_pin') || DEFAULT_PIN;
+}
+
+function pinInput(digit) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 6) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDelete() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  $('pinError').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 6; i++) {
+    const dot = $('dot' + i);
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+  }
+}
+
+function checkPin() {
+  if (pinBuffer === getStoredPin()) {
+    $('pinScreen').classList.add('hidden');
+    if (SCRIPT_URL) syncData();
+  } else {
+    $('pinError').textContent = 'PIN salah. Coba lagi.';
+    for (let i = 0; i < 6; i++) {
+      const dot = $('dot' + i);
+      dot.classList.remove('filled');
+      dot.classList.add('error');
+    }
+    setTimeout(() => {
+      for (let i = 0; i < 6; i++) $('dot'+i).classList.remove('error');
+      $('pinError').textContent = '';
+    }, 600);
+    pinBuffer = '';
+  }
+}
+
+function openChangePinModal() {
+  // Bisa dibuka dari pin screen atau dari dalam app
+  ['oldPin','newPin','confirmPin'].forEach(id => $(id).value = '');
+  $('changePinError').textContent = '';
+  closeModal('settingsModal');
+  $('changePinModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function saveNewPin() {
+  const old = $('oldPin').value.trim();
+  const nw  = $('newPin').value.trim();
+  const cf  = $('confirmPin').value.trim();
+  if (old !== getStoredPin()) { $('changePinError').textContent = 'PIN lama salah.'; return; }
+  if (nw.length !== 6 || !/^\d{6}$/.test(nw)) { $('changePinError').textContent = 'PIN baru harus 6 digit angka.'; return; }
+  if (nw !== cf) { $('changePinError').textContent = 'Konfirmasi PIN tidak cocok.'; return; }
+  localStorage.setItem('prima_pin', nw);
+  closeModal('changePinModal');
+  alert('✅ PIN berhasil diubah!');
+}
+
+// Tambahkan menu ganti PIN di settings
 // ── STATE ──
 let members        = [];
 let absensiHistory = [];
@@ -763,7 +950,9 @@ async function syncData() {
   setSyncStatus('loading','Sinkronisasi...');
   showLoading('Mengambil data dari Google Sheets...');
   try {
-    const data = await fetch(SCRIPT_URL + '?t=' + Date.now()).then(r=>r.json());
+    const res  = await fetch(SCRIPT_URL, { redirect: 'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
     if (data.error) throw new Error(data.error);
     members        = data.anggota  || [];
     absensiHistory = data.absensi  || [];
@@ -774,26 +963,33 @@ async function syncData() {
     refreshAll();
   } catch(err) {
     setSyncStatus('err','Gagal: ' + err.message);
+    console.error('Sync error:', err);
   } finally { hideLoading(); }
 }
 
 async function postData(action, payload) {
   if (!SCRIPT_URL) return;
   try {
+    // Content-Type: text/plain menghindari CORS preflight
     await fetch(SCRIPT_URL, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action, payload})
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action, payload }),
+      redirect: 'follow'
     });
-    await new Promise(r=>setTimeout(r,1800));
-    const data = await fetch(SCRIPT_URL + '?t=' + Date.now()).then(r=>r.json());
+    // Tunggu Apps Script selesai menulis
+    await new Promise(r => setTimeout(r, 2000));
+    const data = await fetch(SCRIPT_URL, { redirect: 'follow' }).then(r => r.json());
     if (!data.error) {
       members        = data.anggota  || members;
       absensiHistory = data.absensi  || absensiHistory;
       jadwalList     = data.jadwal   || jadwalList;
     }
     setSyncStatus('ok','Tersinkron · '+new Date().toLocaleTimeString('id-ID'));
-  } catch(e) { setSyncStatus('err','Offline — data lokal'); }
+  } catch(e) {
+    setSyncStatus('err','Offline — data lokal');
+    console.error('Post error:', e);
+  }
 }
 
 function refreshAll() {
@@ -1176,7 +1372,7 @@ initSettings();
 renderNextIbadah();
 renderDashboard();
 updateFab();
-if (SCRIPT_URL) syncData();
+// Sync hanya setelah PIN berhasil (dipanggil dari checkPin)
 </script>
 </body>
 </html>
