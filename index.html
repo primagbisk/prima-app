@@ -1161,32 +1161,93 @@ function resetMemberForm(){
   $('photoPreview').style.display='none'; $('photoPlaceholder').style.display='block'; $('photoPreview').src='';
   document.querySelectorAll('#minatGroup input[type="checkbox"]').forEach(cb=>cb.checked=false);
 }
+// foto sementara disimpan di sini sebelum diupload
+let pendingPhotoBase64 = null;
+let pendingPhotoMime   = null;
+
 function handlePhoto(e){
-  const file=e.target.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{$('photoPreview').src=ev.target.result;$('photoPreview').style.display='block';$('photoPlaceholder').style.display='none';};
+  const file = e.target.files[0]; if(!file) return;
+  // Validasi ukuran maks 3MB
+  if(file.size > 3 * 1024 * 1024){ alert('Ukuran foto maksimal 3MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const result = ev.target.result;
+    // Tampilkan preview
+    $('photoPreview').src = result;
+    $('photoPreview').style.display = 'block';
+    $('photoPlaceholder').style.display = 'none';
+    // Simpan base64 tanpa header untuk dikirim ke Drive
+    pendingPhotoBase64 = result.split(',')[1];
+    pendingPhotoMime   = file.type;
+  };
   reader.readAsDataURL(file);
 }
+
 async function saveMember(){
-  const nama=$('fNama').value.trim();
-  if(!nama){alert('Nama wajib diisi.');return;}
-  const minat=[...document.querySelectorAll('#minatGroup input:checked')].map(cb=>cb.value);
-  const m={
-    id:editingMemberId||Date.now().toString(),
+  const nama = $('fNama').value.trim();
+  if(!nama){ alert('Nama wajib diisi.'); return; }
+  const minat = [...document.querySelectorAll('#minatGroup input:checked')].map(cb=>cb.value);
+  const memberId = editingMemberId || Date.now().toString();
+
+  // Ambil fotoUrl lama jika tidak ada foto baru
+  const existingMember = members.find(x=>x.id===memberId);
+  let fotoUrl = existingMember?.foto || existingMember?.fotoUrl || '';
+
+  closeModal('addMemberModal');
+
+  // Upload foto baru ke Google Drive jika ada
+  if(pendingPhotoBase64 && SCRIPT_URL){
+    showLoading('Mengupload foto ke Google Drive...');
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'uploadFoto',
+          payload: { memberId, nama, base64: pendingPhotoBase64, mimeType: pendingPhotoMime }
+        }),
+        redirect: 'follow'
+      });
+      const data = await res.json();
+      if(data.ok && data.fotoUrl){
+        fotoUrl = data.fotoUrl;
+      } else {
+        console.error('Upload foto gagal:', data.error);
+      }
+    } catch(err){
+      console.error('Upload foto error:', err);
+    }
+    pendingPhotoBase64 = null;
+    pendingPhotoMime   = null;
+  }
+
+  const m = {
+    id: memberId,
     nama, tanggalLahir:$('fTanggalLahir').value, hp:$('fHP').value,
     email:$('fEmail').value, pekerjaan:$('fPekerjaan').value,
     statusNikah:$('fStatus').value, alamat:$('fAlamat').value,
     minat, pelayananAktif:$('fPelayananAktif').value,
     catatan:$('fCatatan').value, dokumen:$('fDokumen').value,
-    foto:$('photoPreview').src||''
+    foto: fotoUrl, fotoUrl: fotoUrl
   };
+
   if(editingMemberId){ const i=members.findIndex(x=>x.id===editingMemberId); if(i>=0)members[i]=m; }
   else members.push(m);
-  closeModal('addMemberModal'); renderAnggota(); renderDashboard();
-  showLoading('Menyimpan anggota...');
-  await postData('saveAnggota',m);
+
+  renderAnggota(); renderDashboard();
+  showLoading('Menyimpan data anggota...');
+  await postData('saveAnggota', m);
   hideLoading();
   alert(`✅ ${nama} berhasil disimpan!`);
+}
+
+function avatarHtml(m, size=''){
+  const url = m.fotoUrl || m.foto || '';
+  const style = size ? `style="width:${size};height:${size};font-size:1.4rem"` : '';
+  if(url && (url.startsWith('http') || url.startsWith('data:'))) {
+    return `<div class="avatar" ${style}><img src="${url}" onerror="this.parentElement.innerHTML='${initials(m.nama)}'"></div>`;
+  }
+  return `<div class="avatar" ${style}>${initials(m.nama)}</div>`;
 }
 
 function renderAnggota(){
@@ -1202,7 +1263,7 @@ function renderAnggota(){
     const card=document.createElement('div'); card.className='member-card';
     card.innerHTML=`
       <div class="member-card-header">
-        <div class="avatar">${m.foto&&m.foto.startsWith('data:')?`<img src="${m.foto}">`:`${initials(m.nama)}`}</div>
+        ${avatarHtml(m)}
         <div><div class="member-card-name">${m.nama}</div><div class="member-card-role">${m.statusNikah||''} ${m.pekerjaan?'· '+m.pekerjaan:''}</div></div>
       </div>
       <div class="member-card-body">
@@ -1229,7 +1290,7 @@ function viewMember(id){
   viewingMemberId=id; const m=members.find(x=>x.id===id); const pct=getMemberPct(id);
   $('detailBody').innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div class="avatar" style="width:64px;height:64px;font-size:1.4rem">${m.foto&&m.foto.startsWith('data:')?`<img src="${m.foto}">`:`${initials(m.nama)}`}</div>
+      ${avatarHtml(m,'64px')}
       <div><div style="font-family:'Playfair Display',serif;font-size:1.15rem">${m.nama}</div>
       <div style="color:var(--gray);font-size:.78rem;margin-top:2px">${m.statusNikah||''} ${m.pekerjaan?'· '+m.pekerjaan:''}</div></div>
     </div>
@@ -1258,8 +1319,16 @@ function editMember(id){
   $('fAlamat').value=m.alamat||''; $('fPelayananAktif').value=m.pelayananAktif||'';
   $('fCatatan').value=m.catatan||''; $('fDokumen').value=m.dokumen||'';
   document.querySelectorAll('#minatGroup input[type="checkbox"]').forEach(cb=>{ cb.checked=(m.minat||[]).includes(cb.value); });
-  if(m.foto&&m.foto.startsWith('data:')){$('photoPreview').src=m.foto;$('photoPreview').style.display='block';$('photoPlaceholder').style.display='none';}
-  else{$('photoPreview').style.display='none';$('photoPlaceholder').style.display='block';}
+  const fotoUrl = m.fotoUrl || m.foto || '';
+  if(fotoUrl && (fotoUrl.startsWith('http') || fotoUrl.startsWith('data:'))){
+    $('photoPreview').src=fotoUrl;
+    $('photoPreview').style.display='block';
+    $('photoPlaceholder').style.display='none';
+  } else {
+    $('photoPreview').style.display='none';
+    $('photoPlaceholder').style.display='block';
+  }
+  pendingPhotoBase64=null; pendingPhotoMime=null;
   closeModal('detailModal'); openModal('addMemberModal');
 }
 function editCurrentMember(){ editMember(viewingMemberId); }
