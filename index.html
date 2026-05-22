@@ -42,15 +42,45 @@ body {
 
 /* ── PIN SCREEN ── */
 #pinScreen {
-  position: fixed; inset: 0; z-index: 1000;
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--navy);
+  display: flex; flex-direction: row;
+  align-items: stretch;
+}
+#pinScreen.hidden { display: none; }
+.pin-left {
+  flex: 0 0 340px;
   background: var(--navy);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 32px 24px;
-  padding-top: calc(var(--safe-top) + 32px);
-  padding-bottom: calc(var(--safe-bottom) + 32px);
+  padding: 32px 28px;
+  border-right: 3px solid var(--gold);
+  min-height: 100vh;
 }
-#pinScreen.hidden { display: none; }
+.pin-right {
+  flex: 1;
+  background: var(--navy-mid);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 40px;
+}
+.pin-right-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 5rem; color: var(--gold);
+  letter-spacing: .05em; line-height: 1;
+}
+.pin-right-sub { color: #a0aec0; font-size: .95rem; text-align: center; line-height: 1.8; }
+.pin-right-verse {
+  max-width: 360px; text-align: center;
+  color: rgba(255,255,255,.3); font-size: .8rem;
+  font-style: italic; margin-top: 24px; line-height: 1.8;
+}
+/* Mobile & tablet portrait: full screen PIN only */
+@media (max-width: 700px) {
+  #pinScreen { flex-direction: column; }
+  .pin-left { flex: 1; border-right: none; width: 100%; min-height: unset; }
+  .pin-right { display: none; }
+}
 .pin-logo {
   font-family: 'Playfair Display', serif;
   font-size: 3rem; color: var(--gold);
@@ -461,32 +491,50 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
 
 <!-- PIN SCREEN -->
 <div id="pinScreen">
-  <div class="pin-logo">PriMa</div>
-  <div class="pin-subtitle">GBIS Kepunton · Pria Maximal<br>Masukkan PIN untuk melanjutkan</div>
-  <div class="pin-dots" id="pinDots">
-    <div class="pin-dot" id="dot0"></div>
-    <div class="pin-dot" id="dot1"></div>
-    <div class="pin-dot" id="dot2"></div>
-    <div class="pin-dot" id="dot3"></div>
-    <div class="pin-dot" id="dot4"></div>
-    <div class="pin-dot" id="dot5"></div>
+  <!-- Kiri: PIN input -->
+  <div class="pin-left">
+    <div class="pin-logo">PriMa</div>
+    <div class="pin-subtitle">GBIS Kepunton · Pria Maximal<br>Masukkan PIN untuk melanjutkan</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+      <div class="pin-dot" id="dot4"></div>
+      <div class="pin-dot" id="dot5"></div>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="pinInput('1')">1</button>
+      <button class="pin-key" onclick="pinInput('2')">2</button>
+      <button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button>
+      <button class="pin-key" onclick="pinInput('5')">5</button>
+      <button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button>
+      <button class="pin-key" onclick="pinInput('8')">8</button>
+      <button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key empty"></button>
+      <button class="pin-key" onclick="pinInput('0')">0</button>
+      <button class="pin-key del" onclick="pinDelete()">⌫</button>
+    </div>
+    <button class="pin-change" onclick="openChangePinModal()">Ganti PIN</button>
   </div>
-  <div class="pin-error" id="pinError"></div>
-  <div class="pin-grid">
-    <button class="pin-key" onclick="pinInput('1')">1</button>
-    <button class="pin-key" onclick="pinInput('2')">2</button>
-    <button class="pin-key" onclick="pinInput('3')">3</button>
-    <button class="pin-key" onclick="pinInput('4')">4</button>
-    <button class="pin-key" onclick="pinInput('5')">5</button>
-    <button class="pin-key" onclick="pinInput('6')">6</button>
-    <button class="pin-key" onclick="pinInput('7')">7</button>
-    <button class="pin-key" onclick="pinInput('8')">8</button>
-    <button class="pin-key" onclick="pinInput('9')">9</button>
-    <button class="pin-key empty"></button>
-    <button class="pin-key" onclick="pinInput('0')">0</button>
-    <button class="pin-key del" onclick="pinDelete()">⌫</button>
+  <!-- Kanan: Dekorasi (hanya PC) -->
+  <div class="pin-right">
+    <div class="pin-right-logo">PriMa</div>
+    <div class="pin-right-sub">
+      <strong style="color:var(--gold-light)">Pria Maximal</strong><br>
+      GBIS Kepunton · Solo<br>
+      Komisi Pria
+    </div>
+    <div class="pin-right-verse">
+      "Jadilah kuat dan teguh hatimu,<br>
+      jangan takut dan jangan gemetar karena mereka,<br>
+      sebab TUHAN, Allahmu, Dialah yang berjalan menyertai engkau."<br><br>
+      — Ulangan 31:6
+    </div>
   </div>
-  <button class="pin-change" onclick="openChangePinModal()">Ganti PIN</button>
 </div>
 
 <!-- HEADER -->
@@ -733,6 +781,9 @@ select { padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg x
       <div class="form-grid">
         <div class="form-group full"><label>Nama Lengkap *</label><input type="text" id="fNama" placeholder="Nama lengkap" autocomplete="name"></div>
         <div class="form-group"><label>Tanggal Lahir</label><input type="date" id="fTanggalLahir"></div>
+        <div class="form-group"><label>Golongan Darah</label>
+          <select id="fGoldar"><option value="">Pilih...</option><option>A</option><option>B</option><option>AB</option><option>O</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+        </div>
         <div class="form-group"><label>Status Pernikahan</label>
           <select id="fStatus"><option value="">Pilih...</option><option>Lajang</option><option>Menikah</option><option>Duda</option></select>
         </div>
@@ -1157,7 +1208,7 @@ async function saveAbsensi(){
 // ── MEMBER ──
 function resetMemberForm(){
   ['fNama','fHP','fEmail','fPekerjaan','fAlamat','fPelayananAktif','fCatatan','fDokumen'].forEach(id=>$(id).value='');
-  $('fTanggalLahir').value=''; $('fStatus').value='';
+  $('fTanggalLahir').value=''; $('fStatus').value=''; $('fGoldar').value='';
   $('photoPreview').style.display='none'; $('photoPlaceholder').style.display='block'; $('photoPreview').src='';
   document.querySelectorAll('#minatGroup input[type="checkbox"]').forEach(cb=>cb.checked=false);
 }
@@ -1225,7 +1276,8 @@ async function saveMember(){
     id: memberId,
     nama, tanggalLahir:$('fTanggalLahir').value, hp:$('fHP').value,
     email:$('fEmail').value, pekerjaan:$('fPekerjaan').value,
-    statusNikah:$('fStatus').value, alamat:$('fAlamat').value,
+    statusNikah:$('fStatus').value, goldar:$('fGoldar').value,
+    alamat:$('fAlamat').value,
     minat, pelayananAktif:$('fPelayananAktif').value,
     catatan:$('fCatatan').value, dokumen:$('fDokumen').value,
     foto: fotoUrl, fotoUrl: fotoUrl
@@ -1296,7 +1348,9 @@ function viewMember(id){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.8rem;margin-bottom:14px">
       <div><strong>Tgl Lahir</strong><br><span style="color:var(--gray)">${fmtDate(m.tanggalLahir)}</span></div>
+      <div><strong>Gol. Darah</strong><br><span style="color:var(--gray)">${m.goldar||'–'}</span></div>
       <div><strong>HP/WA</strong><br><span style="color:var(--gray)">${m.hp||'–'}</span></div>
+      <div><strong>Status</strong><br><span style="color:var(--gray)">${m.statusNikah||'–'}</span></div>
       <div><strong>Email</strong><br><span style="color:var(--gray);word-break:break-all">${m.email||'–'}</span></div>
       <div><strong>Alamat</strong><br><span style="color:var(--gray)">${m.alamat||'–'}</span></div>
     </div>
@@ -1316,6 +1370,7 @@ function editMember(id){
   $('fNama').value=m.nama||''; $('fTanggalLahir').value=m.tanggalLahir||'';
   $('fHP').value=m.hp||''; $('fEmail').value=m.email||'';
   $('fPekerjaan').value=m.pekerjaan||''; $('fStatus').value=m.statusNikah||'';
+  $('fGoldar').value=m.goldar||'';
   $('fAlamat').value=m.alamat||''; $('fPelayananAktif').value=m.pelayananAktif||'';
   $('fCatatan').value=m.catatan||''; $('fDokumen').value=m.dokumen||'';
   document.querySelectorAll('#minatGroup input[type="checkbox"]').forEach(cb=>{ cb.checked=(m.minat||[]).includes(cb.value); });
